@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Assinador de PDFs</title>
+
+<link rel="stylesheet" href="/static/style.css">
+
+</head>
+
+<body>
+
+<div class="container">
+<div class="card">
+
+<div class="title">Assinador de PDFs</div>
+<div class="subtitle">Envie sua assinatura e visualize os PDFs antes de assinar</div>
+
+<h3>Assinatura</h3>
+
+<div class="drop" onclick="document.getElementById('assinatura').click()">
+Clique ou arraste sua assinatura
+</div>
+
+<input type="file" id="assinatura" name="assinatura" hidden accept="image/png,image/jpeg">
+
+<img id="preview" class="preview"/>
+
+
+<h3 style="margin-top:25px;">PDFs</h3>
+
+<div class="drop" onclick="document.getElementById('pdfs').click()">
+Adicionar PDFs
+</div>
+
+<input type="file" id="pdfs" name="pdfs" hidden multiple accept="application/pdf">
+
+<div id="lista"></div>
+<div id="pdfPreviewContainer"></div>
+
+<button onclick="enviar()">Assinar PDFs</button>
+
+<form id="formHidden" method="POST" action="/assinar" enctype="multipart/form-data" style="display:none;"></form>
+
+</div>
+</div>
+
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<script src="/static/script.js"></script>
+
+</body>
+</html>
