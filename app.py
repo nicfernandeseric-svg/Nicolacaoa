@@ -1,88 +1,75 @@
-from flask import Flask, render_template, request, send_file
-import os
-import zipfile
-from reportlab.pdfgen import canvas
-from pypdf import PdfReader, PdfWriter, Transformation
-from PIL import Image
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Assinador</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Painel do Assinador</h1>
+            <nav>
+                <span>Olá, {{ current_user.username }}</span>
+                <a href="{{ url_for('logout') }}" class="btn-logout">Sair</a>
+            </nav>
+        </div>
+    </header>
 
-app = Flask(__name__)
+    <main class="container">
+        <section class="docs-section">
+            <h2>Documentos Pendentes de Assinatura</h2>
+            {% if docs %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Arquivo</th>
+                        <th>Fluxo</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in docs %}
+                    <tr>
+                        <td>{{ doc.original_filename }}</td>
+                        <td>Fluxo {{ doc.workflow_type }}</td>
+                        <td>
+                            <form action="{{ url_for('sign', doc_id=doc.id) }}" method="POST" enctype="multipart/form-data" class="sign-form">
+                                <input type="file" name="signature" accept="image/*" required id="sig-{{ doc.id }}" style="display:none" onchange="this.form.submit()">
+                                <button type="button" class="btn-primary btn-sm" onclick="document.getElementById('sig-{{ doc.id }}').click()">Assinar Agora</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Nenhum documento pendente no momento.</p>
+            {% endif %}
+        </section>
 
-UPLOAD_FOLDER = "uploads"
-OUTPUT_FOLDER = "output"
-
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-
-MARGEM_X = 40
-MARGEM_Y = 40
-LARGURA_ASSINATURA = 160
-
-
-def criar_assinatura_pdf(img_path, w, h):
-    temp = "temp.pdf"
-
-    img = Image.open(img_path)
-    proporcao = img.height / img.width
-    altura = LARGURA_ASSINATURA * proporcao
-
-    c = canvas.Canvas(temp, pagesize=(w, h))
-    c.drawImage(img_path, w - LARGURA_ASSINATURA - MARGEM_X, MARGEM_Y,
-                width=LARGURA_ASSINATURA, height=altura, mask="auto")
-    c.save()
-
-    return temp
-
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-@app.route("/assinar", methods=["POST"])
-def assinar():
-
-    assinatura = request.files["assinatura"]
-    pdfs = request.files.getlist("pdfs")
-
-    assinatura_path = os.path.join(UPLOAD_FOLDER, assinatura.filename)
-    assinatura.save(assinatura_path)
-
-    saida_files = []
-
-    for pdf in pdfs:
-
-        pdf_path = os.path.join(UPLOAD_FOLDER, pdf.filename)
-        pdf.save(pdf_path)
-
-        reader = PdfReader(pdf_path)
-        writer = PdfWriter()
-
-        first = reader.pages[0]
-        w = float(first.mediabox.width)
-        h = float(first.mediabox.height)
-
-        sig_pdf = criar_assinatura_pdf(assinatura_path, w, h)
-        sig_page = PdfReader(sig_pdf).pages[0]
-
-        for p in reader.pages:
-            p.merge_transformed_page(sig_page, Transformation())
-            writer.add_page(p)
-
-        out_path = os.path.join(OUTPUT_FOLDER, pdf.filename)
-
-        with open(out_path, "wb") as f:
-            writer.write(f)
-
-        saida_files.append(out_path)
-
-    zip_path = os.path.join(OUTPUT_FOLDER, "resultado.zip")
-
-    with zipfile.ZipFile(zip_path, "w") as z:
-        for f in saida_files:
-            z.write(f, os.path.basename(f))
-
-    return send_file(zip_path, as_attachment=True)
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+        <section class="history-section">
+            <h2>Meu Histórico</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Arquivo</th>
+                        <th>Ação Realizada</th>
+                        <th>Data/Hora</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in history %}
+                    <tr>
+                        <td>{{ log.document.original_filename }}</td>
+                        <td>{{ log.action }}</td>
+                        <td>{{ log.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+</body>
+</html>
